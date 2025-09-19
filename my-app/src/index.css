@@ -1,51 +1,37 @@
+/* src/index.css */
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
-
-:root {
-  --paper: #fcfcf7;
-  --ink: #0f172a;
-  --accent: #0ea5a4;
-  --line-gap: 28px;
-  --line-offset: 8px;
-}
-
-@media (min-width: 768px) {
-  :root { --line-gap: 30px; }
-}
-@media (min-width: 1024px) {
-  :root { --line-gap: 32px; }
-}
 
 html, body, #root { height: 100%; }
 body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  background: #f8fafc;
-  color: var(--ink);
+  background: #f7f7f5;
+  color: #0f172a;
 }
 
-.notebook-card {
-  position: relative;
-  background-color: var(--paper);
-  background-image:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(14,165,164,0.10) 0,
-      rgba(14,165,164,0.10) 1px,
-      transparent 1px,
-      transparent var(--line-gap)
-    );
-  background-size: 100% var(--line-gap);
-  background-position: 0 var(--line-offset);
+/* smooth micro-transitions */
+* { transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+
+/* accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
-.notebook-card::before {
-  content: "";
-  position: absolute;
-  left: 16px; top: 0; bottom: 0;
-  width: 2px;
-  background: rgba(239,68,68,0.25);
+
+/* rainfall animation */
+@keyframes raindrop {
+  0% { transform: translateY(-10px) scaleY(0.9); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(100px) scaleY(1); opacity: 0; }
 }
-.notebook-content {
-  line-height: var(--line-gap);
-  padding-top: var(--line-offset);
+
+/* edit modal entrance */
+@keyframes modalIn {
+  0% { transform: scale(0.98) translateY(6px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
-.paper-shadow { box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
+
+/* plant sway */
+@keyframes leafSway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}

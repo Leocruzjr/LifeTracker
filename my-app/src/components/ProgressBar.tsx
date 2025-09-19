@@ -2,20 +2,23 @@
 export default function ProgressBar({
   current,
   total,
+  color = "#0ea5a4",
 }: {
   current: number;
   total: number;
+  color?: string;
 }) {
-  const pct = Math.max(0, Math.min(100, Math.round((current / Math.max(1, total)) * 100)));
+  const rawPct = Math.round((current / Math.max(1, total)) * 100);
+  const pct = current > 0 ? Math.max(6, Math.min(100, rawPct)) : 0; // ensure visible first-day chunk
   return (
-    <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+    <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden" aria-hidden>
       <div
-        className="h-full bg-teal-600 transition-[width] duration-300"
-        style={{ width: `${pct}%` }}
+        className="h-full transition-[width] duration-300"
+        style={{ width: `${pct}%`, backgroundColor: color }}
+        role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct}
-        role="progressbar"
       />
     </div>
   );

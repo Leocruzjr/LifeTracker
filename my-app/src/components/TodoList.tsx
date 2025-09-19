@@ -1,152 +1,129 @@
-import { useRef, useState } from "react";
+// src/components/TodoList.tsx
+import { useState } from "react";
 import { TodoGroup } from "../types";
-import ColorPicker from "./ColorPicker";
 
 export default function TodoList({
   groups,
-  onAddGroup,
+  onAddGroup, // not used here
   onAddItem,
   onToggleItem,
   onDeleteItem,
-  onSetGroupColor,
+  onOpenEditGroup,
+  onEraseCompleted, // kept for compatibility; no button rendered
+  tradeSourceGroupId,
+  onTradeTarget,
 }: {
   groups: TodoGroup[];
   onAddGroup: (name: string) => void;
   onAddItem: (groupId: string, text: string) => void;
   onToggleItem: (groupId: string, itemId: string) => void;
   onDeleteItem: (groupId: string, itemId: string) => void;
-  onSetGroupColor: (groupId: string, color: string) => void;
+  onOpenEditGroup: (group: TodoGroup) => void;
+  onEraseCompleted: (groupId: string) => void; // not used visually
+  tradeSourceGroupId?: string | null;
+  onTradeTarget?: (targetId: string) => void;
 }) {
-  const [newGroup, setNewGroup] = useState("");
-  const newGroupRef = useRef<HTMLInputElement>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const handleAdd = (gid: string) => {
+    const text = (drafts[gid] || "").trim();
+    if (!text) return;
+    onAddItem(gid, text);
+    setDrafts((d) => ({ ...d, [gid]: "" }));
+  };
+
+  const hasGroups = groups.length > 0;
 
   return (
-    <section className="mt-8">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">To-Do</h3>
-        <div className="flex gap-2">
-          <input
-            ref={newGroupRef}
-            value={newGroup}
-            onChange={(e) => setNewGroup(e.target.value)}
-            placeholder="New group (e.g., Home)"
-            className="rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
-          />
-          <button
-            className="rounded-lg border px-3 py-2 text-sm bg-white hover:bg-gray-50 transition focus-visible:ring-2 focus-visible:ring-teal-500"
-            onClick={() => {
-              const name = newGroup.trim();
-              if (name) {
-                onAddGroup(name);
-                setNewGroup("");
-                newGroupRef.current?.focus();
-              }
-            }}
-          >
-            Add Group
-          </button>
-        </div>
-      </div>
-
-      {groups.length === 0 ? (
-        <div className="rounded-xl border bg-white p-4 text-gray-600">
-          No groups yet. Create one like <span className="font-semibold">Home</span>,{" "}
-          <span className="font-semibold">Work</span>, or{" "}
-          <span className="font-semibold">Groceries</span>.
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {groups.map((g) => (
-            <GroupCard
-              key={g.id}
-              group={g}
-              onAddItem={(text) => onAddItem(g.id, text)}
-              onToggleItem={(itemId) => onToggleItem(g.id, itemId)}
-              onDeleteItem={(itemId) => onDeleteItem(g.id, itemId)}
-              onSetColor={(color) => onSetGroupColor(g.id, color)}
-            />
-          ))}
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {!hasGroups && (
+        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 rounded-xl border bg-white p-4 text-gray-600">
+          No groups yet. Use the field above to add one.
         </div>
       )}
-    </section>
-  );
-}
 
-function GroupCard({
-  group,
-  onAddItem,
-  onToggleItem,
-  onDeleteItem,
-  onSetColor,
-}: {
-  group: TodoGroup;
-  onAddItem: (text: string) => void;
-  onToggleItem: (itemId: string) => void;
-  onDeleteItem: (itemId: string) => void;
-  onSetColor: (color: string) => void;
-}) {
-  const [text, setText] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const bg = group.color || "#ffffff";
+      {groups.map((g) => {
+        const showTrade = tradeSourceGroupId && tradeSourceGroupId !== g.id;
+        // Keep the approved look: solid black border + soft pastel fill
+        const bg = `linear-gradient(180deg, ${g.color}4D 0%, ${g.color}33 50%, ${g.color}1A 100%), #ffffff`;
 
-  return (
-    <div
-      className="rounded-xl border p-4 shadow-sm hover:shadow-md transition hover:-translate-y-[1px]"
-      style={{ backgroundColor: bg }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="font-semibold">{group.name}</h4>
-        <ColorPicker value={bg} onChange={onSetColor} />
-      </div>
+        return (
+          <div
+            key={g.id}
+            className="relative rounded-xl border border-black shadow-sm hover:shadow transition"
+            style={{ background: bg }}
+          >
+            {showTrade && onTradeTarget && (
+              <button
+                onClick={() => onTradeTarget(g.id)}
+                className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 px-2 py-1 text-xs rounded-md bg-amber-200 text-amber-900 border shadow"
+                title="Swap position with this card"
+              >
+                Trade here
+              </button>
+            )}
 
-      <div className="space-y-2 mb-3">
-        {group.items.map((it) => (
-          <label key={it.id} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-teal-600"
-              checked={it.done}
-              onChange={() => onToggleItem(it.id)}
-            />
-            <span className={it.done ? "line-through text-gray-500" : ""}>
-              {it.text}
-            </span>
-            <button
-              className="ml-auto text-xs text-gray-600 hover:text-red-600"
-              onClick={() => onDeleteItem(it.id)}
-              title="Delete task"
-            >
-              Delete
-            </button>
-          </label>
-        ))}
-        {group.items.length === 0 && (
-          <p className="text-sm text-gray-600">No tasks yet.</p>
-        )}
-      </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-semibold truncate">
+                  {g.name} {g.pinned && <span title="Pinned">📌</span>}
+                </h3>
 
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="New task…"
-          className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 bg-white/80"
-        />
-        <button
-          className="rounded-lg border px-3 py-2 text-sm bg-white hover:bg-gray-50 transition focus-visible:ring-2 focus-visible:ring-teal-500"
-          onClick={() => {
-            const t = text.trim();
-            if (t) {
-              onAddItem(t);
-              setText("");
-              inputRef.current?.focus();
-            }
-          }}
-        >
-          Add
-        </button>
-      </div>
+                <button
+                  onClick={() => onOpenEditGroup(g)}
+                  className="rounded-lg border px-2 py-1 text-sm bg-white hover:bg-gray-50 transition"
+                  title="Edit list"
+                >
+                  Edit
+                </button>
+              </div>
+
+              <ul className="mt-3 space-y-2">
+                {g.items.map((it) => (
+                  <li key={it.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-teal-600"
+                      checked={it.done}
+                      onChange={() => onToggleItem(g.id, it.id)}
+                    />
+                    <span className={`text-sm flex-1 ${it.done ? "line-through text-gray-500" : ""}`}>
+                      {it.text}
+                    </span>
+                    <button
+                      className="text-xs text-gray-500 hover:text-red-600"
+                      onClick={() => onDeleteItem(g.id, it.id)}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+                {g.items.length === 0 && <li className="text-sm text-gray-600">No items yet.</li>}
+              </ul>
+
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Add a task…"
+                  value={drafts[g.id] ?? ""}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [g.id]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdd(g.id);
+                  }}
+                />
+                <button
+                  className="rounded-lg border px-3 py-2 text-sm bg-white hover:bg-gray-50 transition"
+                  onClick={() => handleAdd(g.id)}
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Removed the "erase completed To-Dos" button per request */}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

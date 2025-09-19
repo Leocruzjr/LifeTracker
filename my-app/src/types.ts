@@ -1,10 +1,15 @@
+// src/types.ts
 export type Habit = {
   id: string;
   name: string;
   kind: "good" | "bad";
   targetDays: number;
-  startDate: string;      // yyyy-mm-dd
-  daysChecked: string[];  // yyyy-mm-dd[]
+  startDate: string;
+  daysChecked: string[];
+  pinned?: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type TodoItem = {
@@ -16,6 +21,10 @@ export type TodoItem = {
 export type TodoGroup = {
   id: string;
   name: string;
-  color: string;          // hex (e.g., "#e0f2fe")
+  color: string;
   items: TodoItem[];
+  pinned?: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };

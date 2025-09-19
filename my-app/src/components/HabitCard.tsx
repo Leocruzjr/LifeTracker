@@ -1,16 +1,9 @@
-import ProgressBar from "./ProgressBar";
+// src/components/HabitCard.tsx
+import React, { useMemo } from "react";
 import { Habit } from "../types";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
-}
-function withinWindow(habit: Habit) {
-  const start = new Date(habit.startDate + "T00:00:00");
-  const end = new Date(start);
-  end.setDate(end.getDate() + habit.targetDays - 1);
-  const now = new Date();
-  const d = new Date(now.toISOString().slice(0, 10) + "T00:00:00");
-  return d >= start && d <= end;
 }
 
 export default function HabitCard({
@@ -18,69 +11,104 @@ export default function HabitCard({
   onToggleToday,
   onDeleteHabit,
   onEditDays,
+  tradeSourceId,
+  onTradeTarget,
 }: {
   habit: Habit;
   onToggleToday: (id: string) => void;
   onDeleteHabit: (id: string) => void;
   onEditDays: (h: Habit) => void;
+  tradeSourceId?: string | null;
+  onTradeTarget?: (targetId: string) => void;
 }) {
-  const checkedToday = habit.daysChecked.includes(todayISO());
-  const current = Math.min(habit.daysChecked.length, habit.targetDays);
+  const t = todayISO();
+  const doneToday = useMemo(() => (habit.daysChecked || []).includes(t), [habit.daysChecked, t]);
+
+  const target = Math.max(1, habit.targetDays || 1);
+  const doneCount = (habit.daysChecked || []).length;
+  const pct = Math.min(100, Math.round((doneCount / target) * 100));
+
+  // accents
+  const kindAccent = habit.kind === "good" ? "border-emerald-600" : "border-rose-600";
+  const progressAccent = habit.kind === "good" ? "bg-emerald-500" : "bg-rose-500";
+  const peekBg = habit.kind === "good" ? "bg-emerald-200" : "bg-rose-200";
+
+  // action button states
+  const baseBtn =
+    "rounded-lg px-3 py-2 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-500 border";
+  const btnIdle = "bg-white hover:bg-gray-50 border-gray-300 text-gray-800";
+  const btnDone =
+    habit.kind === "good"
+      ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white"
+      : "bg-rose-600 hover:bg-rose-700 border-rose-700 text-white";
+
+  const showTrade = tradeSourceId && tradeSourceId !== habit.id;
 
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition hover:-translate-y-[1px]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold">
-            {habit.name}{" "}
-            <span className="ml-2 text-xs rounded-full px-2 py-[2px] border text-gray-600">
-              {habit.kind === "good" ? "Good" : "Bad"}
-            </span>
-          </h3>
-          <p className="text-xs text-gray-500 mt-1">
-            Target: {habit.targetDays} day{habit.targetDays !== 1 ? "s" : ""} • Started {habit.startDate}
-          </p>
-        </div>
-
-        <div className="flex gap-2">
+    <div className="relative">
+      {/* subtle colored background peeking from the left for 3D feel */}
+      <div
+        className={`pointer-events-none absolute inset-0 -translate-x-2 rounded-xl border border-black ${peekBg}`}
+        aria-hidden="true"
+      />
+      {/* front card */}
+      <div className="relative rounded-xl border border-black bg-white shadow-sm hover:shadow transition">
+        {showTrade && onTradeTarget && (
           <button
-            onClick={() => onToggleToday(habit.id)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500
-              ${checkedToday
-                ? "bg-teal-600 text-white hover:bg-teal-700"
-                : withinWindow(habit)
-                  ? "bg-white border hover:bg-gray-50"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
-            disabled={!withinWindow(habit)}
-            title={checkedToday ? "Unmark today" : "Mark completed for today"}
+            onClick={() => onTradeTarget(habit.id)}
+            className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 px-2 py-1 text-xs rounded-md bg-amber-200 text-amber-900 border shadow"
+            title="Swap position with this card"
           >
-            {checkedToday ? "Checked ✅" : "Mark today"}
+            Trade here
           </button>
+        )}
 
-          <button
-            onClick={() => onEditDays(habit)}
-            className="rounded-lg px-3 py-2 text-sm font-medium border bg-white hover:bg-gray-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-            title="Edit tracked days"
-          >
-            Edit days
-          </button>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold truncate">
+              {habit.name} {habit.pinned && <span title="Pinned">📌</span>}
+            </h3>
 
-          <button
-            onClick={() => {
-              if (confirm(`Delete habit "${habit.name}"?`)) onDeleteHabit(habit.id);
-            }}
-            className="rounded-lg px-3 py-2 text-sm font-medium border text-red-600 bg-white hover:bg-red-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            title="Delete habit"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                className="rounded-lg border px-2 py-1 text-sm bg-white hover:bg-gray-50"
+                onClick={() => onEditDays(habit)}
+                title="Edit"
+              >
+                Edit
+              </button>
+              <button
+                className="rounded-lg border px-2 py-1 text-sm text-rose-900 bg-rose-200 hover:bg-rose-300"
+                onClick={() => onDeleteHabit(habit.id)}
+                title="Delete"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
 
-      <div className="mt-3">
-        <ProgressBar current={current} total={habit.targetDays} />
-        <div className="mt-1 text-xs text-gray-600">
-          {current} / {habit.targetDays} days
+          {/* Progress */}
+          <div className="mt-3">
+            <div className={`h-3 w-full rounded-full border ${kindAccent} bg-white overflow-hidden`}>
+              <div className={`h-full ${progressAccent}`} style={{ width: `${pct}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-gray-600">{pct}%</div>
+          </div>
+
+          {/* Action row */}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <button
+              onClick={() => onToggleToday(habit.id)}
+              className={`${baseBtn} ${doneToday ? btnDone : btnIdle}`}
+              title={doneToday ? "Marked done for today" : "Mark done for today"}
+            >
+              {doneToday ? "Done" : "Done?"}
+            </button>
+
+            <div className="text-xs text-gray-500">
+              Target: <span className="font-medium">{target} days</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
